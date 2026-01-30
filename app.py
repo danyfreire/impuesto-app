@@ -1,6 +1,10 @@
 import streamlit as st
 
-st.set_page_config(page_title="Calculadora de impuestos y descuentos", page_icon="🧮", layout="centered")
+st.set_page_config(
+    page_title="Calculadora de impuestos y descuentos",
+    page_icon="🧮",
+    layout="centered",
+)
 
 st.title("🧮 Calculadora de impuestos y descuentos")
 st.caption("Hello app: calcula subtotal, descuento, impuesto y total. Hecha para validar rápido una idea.")
@@ -15,7 +19,20 @@ with col1:
 with col2:
     tipo_desc = st.selectbox("Descuento", ["% (porcentaje)", "Valor fijo"], index=0)
     descuento_val = st.number_input("Valor de descuento", min_value=0.0, value=10.0, step=1.0, format="%.2f")
-    iva_pct = st.number_input("Impuesto (%)", min_value=0.0, value=15.0, step=0.5, format="%.2f")
+
+    preset = st.selectbox(
+        "Preset de impuesto",
+        ["Ecuador (IVA 15%)", "0% (sin impuesto)", "Personalizado"],
+        index=0,
+    )
+
+    default_tax = 15.0 if preset == "Ecuador (IVA 15%)" else 0.0
+
+    if preset == "Personalizado":
+        iva_pct = st.number_input("Impuesto (%)", min_value=0.0, value=default_tax, step=0.5, format="%.2f")
+    else:
+        iva_pct = default_tax
+        st.text(f"Impuesto aplicado: {iva_pct:.2f}%")
 
 aplicar_impuesto_sobre = st.radio(
     "Aplicar impuesto sobre:",
@@ -33,12 +50,15 @@ else:
 
 # No permitir descuento mayor al subtotal
 descuento = min(descuento, subtotal)
+
 base = (subtotal - descuento) if aplicar_impuesto_sobre.startswith("Subtotal -") else subtotal
 impuesto = base * (iva_pct / 100.0)
 total = (subtotal - descuento) + impuesto
 
+
 def money(x: float) -> str:
     return f"{moneda} {x:,.2f}"
+
 
 st.divider()
 
