@@ -1,4 +1,7 @@
 import streamlit as st
+from io import BytesIO
+from datetime import datetime
+import pandas as pd
 
 st.set_page_config(
     page_title="Calculadora de impuestos y descuentos",
@@ -68,18 +71,66 @@ k2.metric("Descuento", money(descuento))
 k3.metric("Impuesto", money(impuesto))
 k4.metric("Total", money(total))
 
+# Detalle (expander)
 with st.expander("Detalle del cálculo"):
     st.write(
         {
-            "precio_unitario": precio_unitario,
+            "precio_unitario": float(precio_unitario),
             "cantidad": int(cantidad),
-            "subtotal": subtotal,
-            "descuento": descuento,
-            "base_imponible": base,
-            "impuesto_pct": iva_pct,
-            "impuesto": impuesto,
-            "total": total,
+            "subtotal": float(subtotal),
+            "tipo_descuento": tipo_desc,
+            "valor_descuento": float(descuento_val),
+            "descuento_aplicado": float(descuento),
+            "preset_impuesto": preset,
+            "impuesto_pct": float(iva_pct),
+            "base_imponible": float(base),
+            "impuesto": float(impuesto),
+            "total": float(total),
+            "moneda": moneda,
         }
     )
+
+# ===== EXPORTAR A EXCEL (FUERA DEL EXPANDER) =====
+st.divider()
+st.subheader("📤 Exportar")
+
+resumen_df = pd.DataFrame(
+    [
+        ["Precio unitario", float(precio_unitario)],
+        ["Cantidad", int(cantidad)],
+        ["Subtotal", float(subtotal)],
+        ["Tipo de descuento", tipo_desc],
+        ["Valor de descuento", float(descuento_val)],
+        ["Descuento aplicado", float(descuento)],
+        ["Preset impuesto", preset],
+        ["Impuesto (%)", float(iva_pct)],
+        ["Base imponible", float(base)],
+        ["Impuesto", float(impuesto)],
+        ["Total", float(total)],
+        ["Moneda", moneda],
+        ["Generado", datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
+    ],
+    columns=["Campo", "Valor"],
+)
+
+
+def build_excel_bytes(summary: pd.DataFrame) -> bytes:
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        summary.to_excel(writer, sheet_name="Resumen", index=False)
+        ws = writer.sheets["Resumen"]
+        ws.column_dimensions["A"].width = 22
+        ws.column_dimensions["B"].width = 30
+    return output.getvalue()
+
+
+excel_bytes = build_excel_bytes(resumen_df)
+
+st.download_button(
+    label="⬇️ Descargar Excel",
+    data=excel_bytes,
+    file_name=f"calculo_impuestos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+)
 
 st.caption("Tip: luego le metemos presets (IVA Ecuador 15%, ICE, propinas, etc.) o export a Excel/PDF.")
